@@ -10,8 +10,8 @@ export function AboutSection() {
 
       </div>
       <div className="card-footer">
-        <a className="btn btn-outline-primary" href="/age-quiz">
-            我々のTwitter
+        <a className="btn btn-outline-primary" href="https://twitter.com/aokikyuran">
+            わたしのTwitter
         </a>
       </div>
     </div>
