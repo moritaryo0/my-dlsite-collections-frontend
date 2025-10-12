@@ -1,0 +1,68 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: #e5e7eb;
+  background-color: #0f1115;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #8ab4ff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #a3c3ff;
+}
+/* index.css 追記例 */
+body, button, input, textarea, select {
+  font-family: -apple-system, "SF Pro Text", "SF Pro Display",
+               "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif !important;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #0f1115;
+  color: #e5e7eb;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid #2d323b;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1f27;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #3b4452;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (max-width: 768px) {
+  body { font-size: 13px; line-height: 1.6; }
+  h1, h2, h3, h4, h5, h6,
+  p, a, li, small,
+  .card .card-title,
+  .nav-link,
+  button, input, textarea, select { font-size: 13px; }
+}
