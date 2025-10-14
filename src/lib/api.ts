@@ -196,7 +196,7 @@ export const createPost = (payload: { user_id: string; description: string; cont
   api.post('/posts/', payload);
 export const deletePost = (id: number) => api.delete(`/posts/${id}/`)
 
-export const fetchContents = () => api.get<ContentData[]>('/contents/');
+export const fetchContents = (params?: { limit?: number; offset?: number }) => api.get<ContentData[]>('/contents/', { params });
 export const createContent = (payload: { content_url: string; content_type?: string }) => api.post('/contents/', payload);
 export const goodContent = (id: number) => api.post(`/contents/${id}/good/`);
 

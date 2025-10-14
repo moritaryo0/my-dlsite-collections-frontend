@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { fetchPosts, fetchContents } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import type { UserPost, ContentData } from '../lib/api'
 
 export default function Profile() {
@@ -23,7 +24,7 @@ export default function Profile() {
         setPosts(p.data)
         setContents(c.data)
       } catch (e: any) {
-        setError(e?.message || '読み込みに失敗しました')
+        setError(getErrorMessage(e, '読み込みに失敗しました'))
       }
     })()
   }, [me])

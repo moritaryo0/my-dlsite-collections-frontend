@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { fetchPosts, createPost, fetchContents } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import type { UserPost, ContentData } from '../lib/api'
 import ContentCard from '../components/ContentCard'
 import { useAuth } from '../context/AuthContext'
@@ -43,10 +44,7 @@ export default function Home(props: HomeProps) {
         if (tab === 'profile') setActiveTab('profile')
         await loadLists(me || null)
       } catch (err: any) {
-        const msg = err?.response?.data?.error
-          || (typeof err?.response?.data === 'string' ? err.response.data : null)
-          || (err?.message ?? '初期データの取得に失敗しました')
-        setErrorMessage(msg)
+        setErrorMessage(getErrorMessage(err, '初期データの取得に失敗しました'))
       }
     })()
   }, [urlParams, me])
@@ -69,10 +67,7 @@ export default function Home(props: HomeProps) {
       await loadLists(me)
       setForm({ description: '', content_url: '' })
     } catch (err: any) {
-      const msg = err?.response?.data?.error
-        || (typeof err?.response?.data === 'string' ? err.response.data : null)
-        || (err?.message ?? '投稿に失敗しました')
-      setErrorMessage(msg)
+      setErrorMessage(getErrorMessage(err, '投稿に失敗しました'))
     } finally {
       setIsSubmitting(false)
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { registerAccount, loginJwt, setAuthToken } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import AboutSection from '../components/AboutSection'
 
 export default function Signup() {
@@ -19,8 +20,7 @@ export default function Signup() {
       setAuthToken(res.data.access)
       window.location.replace('/')
     } catch (err: any) {
-      const msg = err?.response?.data || err?.message || '登録に失敗しました'
-      setError(typeof msg === 'string' ? msg : JSON.stringify(msg))
+      setError(getErrorMessage(err, '登録に失敗しました'))
     } finally {
       setLoading(false)
     }

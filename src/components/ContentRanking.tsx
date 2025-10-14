@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchContents } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import type { ContentData } from '../lib/api'
 
 type FilterType = 'all' | 'ボイス・ASMR' | '漫画・CG作品' | 'ゲーム'
@@ -9,7 +10,10 @@ export default function ContentRanking() {
   const [contents, setContents] = useState<ContentData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [displayCount, setDisplayCount] = useState(10)
+  const [displayCount, setDisplayCount] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [supportsServerPagination, setSupportsServerPagination] = useState<boolean | null>(null)
+  const PAGE_SIZE = 10
   const [filter, setFilter] = useState<FilterType>('all')
   const [sortKey, setSortKey] = useState<SortKey>('good')
 
@@ -18,10 +22,22 @@ export default function ContentRanking() {
       try {
         setLoading(true)
         setError(null)
-        const res = await fetchContents()
-        setContents(res.data ?? [])
+        const res = await fetchContents({ limit: PAGE_SIZE, offset: 0 })
+        const initial = res.data ?? []
+        // 判定: limit指定でPAGE_SIZEを超えて返ってきたらサーバー非対応とみなす
+        const isServerPaginated = initial.length <= PAGE_SIZE
+        setSupportsServerPagination(isServerPaginated)
+        setContents(initial)
+        if (isServerPaginated) {
+          setDisplayCount(initial.length)
+          setHasMore(initial.length === PAGE_SIZE)
+        } else {
+          // 全件返却パターン: 初期表示は10件、以降はフロントで+10ずつ
+          setDisplayCount(Math.min(PAGE_SIZE, initial.length))
+          setHasMore(initial.length > PAGE_SIZE)
+        }
       } catch (e: any) {
-        setError(e?.message || '読み込みに失敗しました')
+        setError(getErrorMessage(e, '読み込みに失敗しました'))
       } finally {
         setLoading(false)
       }
@@ -174,9 +190,40 @@ export default function ContentRanking() {
         )}
       </ul>
 
-      {sorted.length > displayCount && !loading && !error && (
+      {hasMore && !loading && !error && (
         <div className="p-3" style={{ display: 'flex', justifyContent: 'center' }}>
-          <button className="btn btn-outline-secondary btn-sm" onClick={() => setDisplayCount(c => c + 10)}>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={async () => {
+              try {
+                setError(null)
+                if (supportsServerPagination) {
+                  setLoading(true)
+                  const res = await fetchContents({ limit: PAGE_SIZE, offset: contents.length })
+                  const next = res.data ?? []
+                  if (next.length > 0) {
+                    const existingKeys = new Set(contents.map(c => (c.id ?? c.content_url)))
+                    const merged = contents.concat(next.filter(n => !existingKeys.has(n.id ?? n.content_url)))
+                    setContents(merged)
+                    setDisplayCount(c => c + next.length)
+                  }
+                  setHasMore(next.length === PAGE_SIZE)
+                } else {
+                  // サーバー非対応: フロント側で表示数だけ増やす
+                  setDisplayCount(c => {
+                    const nextCount = Math.min(c + PAGE_SIZE, sorted.length)
+                    setHasMore(nextCount < sorted.length)
+                    return nextCount
+                  })
+                }
+              } catch (e: any) {
+                setError(getErrorMessage(e, '追加読み込みに失敗しました'))
+              } finally {
+                if (supportsServerPagination) setLoading(false)
+              }
+            }}
+            disabled={loading}
+          >
             もっと表示する
           </button>
         </div>

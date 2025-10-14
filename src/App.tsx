@@ -41,7 +41,7 @@ export default function App() {
               </div>
               <main style={{ minHeight: '100vh', paddingBottom: 72 }}>
                 <Routes>
-                  <Route path="/" element={<RequireAuth redirectToSignup><Home  /></RequireAuth>} />
+                  <Route path="/" element={<RequireAuth redirectToSignup><Home /></RequireAuth>} />
                   <Route path="/search" element={<Search />} />
                   <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                   <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fetchPosts, fetchContents } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import type { UserPost, ContentData } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import ContentCard from '../components/ContentCard'
@@ -27,7 +28,7 @@ export default function UserWorks() {
         setPosts(p.data)
         setContents(c.data)
       } catch (e: any) {
-        setError(e?.message || '読み込みに失敗しました')
+        setError(getErrorMessage(e, '読み込みに失敗しました'))
       } finally {
         setLoading(false)
       }

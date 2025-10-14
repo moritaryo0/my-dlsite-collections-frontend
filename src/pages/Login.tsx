@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { loginJwt, setAuthToken } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import AboutSection from '../components/AboutSection'
 
 export default function Login() {
@@ -21,8 +22,7 @@ export default function Login() {
       setAuthToken(access)
       window.location.replace('/')
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.response?.data?.error || err?.message || 'ログインに失敗しました'
-      setError(msg)
+      setError(getErrorMessage(err, 'ログインに失敗しました'))
     } finally {
       setLoading(false)
     }
