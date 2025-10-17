@@ -152,6 +152,8 @@ export default function Home(props: HomeProps) {
     window.open('https://discord.com/app', '_blank')
   }
 
+  // ---
+
   const getContentTypeBadgeStyle = (type?: string) => {
     if (type === 'ボイス・ASMR') {
       return { backgroundColor: 'transparent', color: '#fbeeca', border: '1px solid #fbeeca' } as React.CSSProperties
@@ -194,7 +196,16 @@ export default function Home(props: HomeProps) {
             </div>
             <input className="form-control" placeholder="作品リンク (例: http://dlsite.com/~)" value={form.content_url} onChange={e=>setForm({...form, content_url:e.target.value})}/>
             <textarea className="form-control" rows={5} placeholder="本文,感想など(任意)" value={form.description} onChange={e=>setForm({...form, description:e.target.value})} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={() => { if (!me) return; const url = `${window.location.origin}/users/${encodeURIComponent(me.username)}/works`; setShareUrl(url); setShowShare(true); }}
+                >
+                  <i className="bi bi-share" /> リストを共有
+                </button>
+              </div>
               <button type="submit" className="btn btn-primary" disabled={isDisabled}>{isSubmitting ? '投稿中...' : '投稿'}</button>
             </div>
           </form>
