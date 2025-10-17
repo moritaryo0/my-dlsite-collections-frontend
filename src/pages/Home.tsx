@@ -14,7 +14,7 @@ export default function Home(props: HomeProps) {
   const [allPosts, setAllPosts] = useState<UserPost[]>([])
   const [myPosts, setMyPosts] = useState<UserPost[]>([])
   const [contents, setContents] = useState<ContentData[]>([])
-  const [form, setForm] = useState({ description: '', content_url: '' })
+  const [form, setForm] = useState({ description: '', content_url: 'http://dlsite.com/~' })
   const [contentType, setContentType] = useState<'ボイス・ASMR' | '漫画・CG作品' | 'ゲーム'>('ボイス・ASMR')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -65,7 +65,7 @@ export default function Home(props: HomeProps) {
       const created = (res.data && res.data.data) ? res.data.data as UserPost : null
       if (created) setLastCreated(created)
       await loadLists(me)
-      setForm({ description: '', content_url: '' })
+      setForm({ description: '', content_url: 'http://dlsite.com/~' })
     } catch (err: any) {
       setErrorMessage(getErrorMessage(err, '投稿に失敗しました'))
     } finally {
@@ -192,7 +192,7 @@ export default function Home(props: HomeProps) {
                 <label className="form-check-label" htmlFor="ct-game">ゲーム</label>
               </div>
             </div>
-            <input className="form-control" placeholder="作品リンク" value={form.content_url} onChange={e=>setForm({...form, content_url:e.target.value})}/>
+            <input className="form-control" placeholder="作品リンク (例: http://dlsite.com/~)" value={form.content_url} onChange={e=>setForm({...form, content_url:e.target.value})}/>
             <textarea className="form-control" rows={5} placeholder="本文,感想など(任意)" value={form.description} onChange={e=>setForm({...form, description:e.target.value})} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="submit" className="btn btn-primary" disabled={isDisabled}>{isSubmitting ? '投稿中...' : '投稿'}</button>
