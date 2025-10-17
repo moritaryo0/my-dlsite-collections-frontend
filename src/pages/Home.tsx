@@ -138,7 +138,7 @@ export default function Home(props: HomeProps) {
 
   const twitterHref = (() => {
     if (!me) return '#'
-    const text = `「${me.username}」の登録作品一覧`
+    const text = `「${me.username}」の好きな作品を覗きに行きましょう`
     const u = new URL('https://twitter.com/intent/tweet')
     u.searchParams.set('text', text)
     u.searchParams.set('url', shareUrl)
