@@ -14,7 +14,7 @@ export default function Home(props: HomeProps) {
   const [allPosts, setAllPosts] = useState<UserPost[]>([])
   const [myPosts, setMyPosts] = useState<UserPost[]>([])
   const [contents, setContents] = useState<ContentData[]>([])
-  const [form, setForm] = useState({ description: '', content_url: 'http://dlsite.com/~' })
+  const [form, setForm] = useState({ description: '', content_url: '' })
   const [contentType, setContentType] = useState<'ボイス・ASMR' | '漫画・CG作品' | 'ゲーム'>('ボイス・ASMR')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -65,7 +65,7 @@ export default function Home(props: HomeProps) {
       const created = (res.data && res.data.data) ? res.data.data as UserPost : null
       if (created) setLastCreated(created)
       await loadLists(me)
-      setForm({ description: '', content_url: 'http://dlsite.com/~' })
+      setForm({ description: '', content_url: '' })
     } catch (err: any) {
       setErrorMessage(getErrorMessage(err, '投稿に失敗しました'))
     } finally {
