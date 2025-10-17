@@ -5,6 +5,7 @@ import { getErrorMessage } from '../lib/error'
 import type { UserPost, ContentData } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import ContentCard from '../components/ContentCard'
+import { applyOgp } from '../lib/head'
 
 export default function UserWorks() {
   const { username } = useParams()
@@ -28,6 +29,20 @@ export default function UserWorks() {
         ])
         setPosts(p.data)
         setContents(c.data)
+        // OGP/Twitterカードを動的設定
+        try {
+          const siteUrl = typeof window !== 'undefined' ? window.location.origin : ''
+          const pageUrl = `${siteUrl}/users/${encodeURIComponent(username)}/works`
+          const first = c.data?.[0]
+          applyOgp({
+            title: `${username} さんの登録作品 - 同人メーター`,
+            description: `${username} さんが登録したお気に入りの作品一覧`,
+            url: pageUrl,
+            image: first?.image || '/ogp-default.png',
+            siteName: '同人メーター',
+            twitterSite: '@aokikyuran',
+          })
+        } catch {}
       } catch (e: any) {
         setError(getErrorMessage(e, '読み込みに失敗しました'))
       } finally {
