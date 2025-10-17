@@ -14,6 +14,7 @@ export default function UserWorks() {
   const [contents, setContents] = useState<ContentData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
 
   useEffect(() => {
     (async () => {
@@ -37,6 +38,45 @@ export default function UserWorks() {
 
   const urlToContent = useMemo(() => contents.reduce((acc, c) => { acc[c.content_url] = c; return acc }, {} as Record<string, ContentData>), [contents])
 
+  const contentTypes = useMemo(() => {
+    const set = new Set<string>()
+    contents.forEach(c => { if (c.content_type) set.add(c.content_type) })
+    return Array.from(set)
+  }, [contents])
+
+  const toggleType = (t: string) => {
+    setSelectedTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
+  }
+
+  const getContentTypeBadgeStyle = (type?: string) => {
+    if (type === 'ボイス・ASMR') {
+      return { backgroundColor: 'transparent', color: '#fbeeca', border: '1px solid #fbeeca' }
+    }
+    if (type === '漫画・CG作品') {
+      return { backgroundColor: 'transparent', color: '#e6f7d6', border: '1px solid #e6f7d6' }
+    }
+    if (type === 'ゲーム') {
+      return { backgroundColor: 'transparent', color: '#f5eaff', border: '1px solid #f5eaff' }
+    }
+    return { backgroundColor: 'transparent', color: '#eee', border: '1px solid #eee' }
+  }
+
+  const getFilterBadgeStyle = (type: string, active: boolean) => {
+    const base = getContentTypeBadgeStyle(type) as any
+    if (active) {
+      return { ...base, backgroundColor: base.color, color: '#222', borderColor: base.color, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)' }
+    }
+    return base
+  }
+
+  const filteredPosts = useMemo(() => {
+    if (selectedTypes.length === 0) return posts
+    return posts.filter(p => {
+      const t = urlToContent[p.content_url]?.content_type
+      return t ? selectedTypes.includes(t) : false
+    })
+  }, [posts, selectedTypes, urlToContent])
+
   if (!username) return <div style={{ width: '100%', padding: '20px 16px', maxWidth: 720, margin: '0 auto' }}>ユーザー名が指定されていません。</div>
 
   return (
@@ -51,8 +91,26 @@ export default function UserWorks() {
       {loading && <div>読み込み中...</div>}
       {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '8px 0 12px' }}>
+        <button
+          type="button"
+          className="badge"
+          onClick={() => setSelectedTypes([])}
+          style={selectedTypes.length === 0 ? { backgroundColor: '#ddd', color: '#222', border: '1px solid #ddd' } : { backgroundColor: 'transparent', color: '#ccc', border: '1px solid #ccc' }}
+        >すべて</button>
+        {contentTypes.map(t => (
+          <button
+            key={t}
+            type="button"
+            className="badge"
+            onClick={() => toggleType(t)}
+            style={getFilterBadgeStyle(t, selectedTypes.includes(t))}
+          >{t}</button>
+        ))}
+      </div>
+
       <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, 1fr)' }}>
-        {posts.map(p => {
+        {filteredPosts.map(p => {
           const c = urlToContent[p.content_url]
           return (
             <ContentCard
