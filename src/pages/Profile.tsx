@@ -18,7 +18,7 @@ export default function Profile() {
       try {
         setError(null)
         const [p, c] = await Promise.all([
-          fetchPosts({ user_id: me.username }),
+          fetchPosts({ username: me.username }),
           fetchContents(),
         ])
         setPosts(p.data)

@@ -164,9 +164,10 @@ api.interceptors.response.use(
   }
 )
 
+export type UserSummary = { id: number; username: string };
 export type UserPost = {
   id: number;
-  user_id: string;
+  user: UserSummary;
   description: string;
   content_url: string;
   created_at: string;
@@ -192,7 +193,7 @@ export type Me = {
 
 // Public endpoints
 export const fetchPosts = (params?: Record<string, string>) => api.get<UserPost[]>('/posts/', { params });
-export const createPost = (payload: { user_id: string; description: string; content_url: string; content_type: string }) =>
+export const createPost = (payload: { description: string; content_url: string; content_type: string }) =>
   api.post('/posts/', payload);
 export const deletePost = (id: number) => api.delete(`/posts/${id}/`)
 
@@ -216,3 +217,7 @@ export const fetchMe = () => backendApi.get<Me>(`/accounts/me/`)
 export const registerAccount = async (payload: { username: string; email?: string; password: string }) => {
   return axios.post(`${BACKEND_BASE}/accounts/register/`, payload)
 }
+
+// Accounts - rename username (auth required)
+export const renameUsername = (payload: { username: string }) =>
+  backendApi.post<Me>(`/accounts/rename/`, payload)

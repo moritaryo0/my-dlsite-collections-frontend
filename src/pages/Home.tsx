@@ -28,7 +28,7 @@ export default function Home(props: HomeProps) {
 
   async function loadLists(currentMe: { username: string } | null) {
     const reqAll = fetchPosts()
-    const reqMy = currentMe ? fetchPosts({ user_id: currentMe.username }) : Promise.resolve({ data: [] as UserPost[] } as any)
+    const reqMy = currentMe ? fetchPosts({ username: currentMe.username }) : Promise.resolve({ data: [] as UserPost[] } as any)
     const reqContents = fetchContents()
     const [pAll, pMy, c] = await Promise.all([reqAll, reqMy, reqContents])
     setAllPosts(pAll.data)
@@ -56,7 +56,6 @@ export default function Home(props: HomeProps) {
     setLastCreated(null)
     try {
       const payload = {
-        user_id: me?.username || '',
         description: form.description,
         content_url: form.content_url,
         content_type: contentType,
@@ -83,7 +82,7 @@ export default function Home(props: HomeProps) {
         return (
           <ContentCard
             key={p.id}
-            username={p.user_id || 'anonymous'}
+            username={p.user?.username || 'anonymous'}
             createdAt={p.created_at}
             contentUrl={p.content_url}
             image={c?.image}

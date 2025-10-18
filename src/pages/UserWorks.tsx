@@ -24,7 +24,7 @@ export default function UserWorks() {
         setLoading(true)
         setError(null)
         const [p, c] = await Promise.all([
-          fetchPosts({ user_id: username }),
+          fetchPosts({ username }),
           fetchContents(),
         ])
         setPosts(p.data)
@@ -130,7 +130,7 @@ export default function UserWorks() {
           return (
             <ContentCard
               key={p.id}
-              username={username}
+              username={p.user?.username || username}
               createdAt={p.created_at}
               contentUrl={p.content_url}
               image={c?.image}
@@ -145,7 +145,7 @@ export default function UserWorks() {
                   try {
                     setLoading(true)
                     const [p2, c2] = await Promise.all([
-                      fetchPosts({ user_id: username }),
+                      fetchPosts({ username }),
                       fetchContents(),
                     ])
                     setPosts(p2.data)
