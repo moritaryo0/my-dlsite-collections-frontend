@@ -20,6 +20,9 @@ export default function Home(props: HomeProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lastCreated, setLastCreated] = useState<UserPost | null>(null)
   const [activeTab, setActiveTab] = useState<'posts' | 'profile'>('posts')
+  const [showUpdatePop, setShowUpdatePop] = useState<boolean>(() => {
+    try { return localStorage.getItem('update_pop_hidden_2025-10-21') !== '1' } catch { return true }
+  })
 
   const [showShare, setShowShare] = useState(false)
   const [shareUrl, setShareUrl] = useState('')
@@ -168,6 +171,18 @@ export default function Home(props: HomeProps) {
 
   return (
     <div style={{ width: '100%', padding: '20px 16px', maxWidth: 720, margin: '0 auto' }}>
+      {showUpdatePop && (
+        <div className="alert alert-info" role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div>
+            新しいアップデートがあります。<a href="/update_info" className="alert-link">こちら</a> から詳細をご確認ください。
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => { try { localStorage.setItem('update_pop_hidden_2025-10-21', '1') } catch {}; setShowUpdatePop(false) }}
+          >非表示</button>
+        </div>
+      )}
       {props.bannerMessage && (
         <div className="alert alert-info" role="alert" style={{ marginBottom: 12 }}>
           {props.bannerMessage}

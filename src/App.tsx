@@ -16,6 +16,8 @@ import UserWorks from './pages/UserWorks'
 import About from './pages/About'
 import RequireAuth from './components/RequireAuth'
 import AgeQuiz from './pages/AgeQuiz'
+import XSignup from './pages/XSignup'
+import UpdateInfo from './pages/UpdateInfo'
 
 export default function App() {
   const [showAgeModal, setShowAgeModal] = useState(false)
@@ -51,8 +53,10 @@ export default function App() {
                   {/* 公開ページ */}
                   <Route path="/age-quiz" element={<AgeQuiz />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/update_info" element={<UpdateInfo />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
+                  <Route path="/x-signup" element={<XSignup />} />
                 </Routes>
               </main>
             </div>

@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { registerAccount, loginJwt, setAuthToken } from '../lib/api'
 import { getErrorMessage } from '../lib/error'
 import AboutSection from '../components/AboutSection'
+import XLoginButton from '../components/XLoginButton'
 
 export default function Signup() {
   const [form, setForm] = useState({ username: '', password: '' })
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  // Vite dev server proxy を利用して相対パスでバックエンドへ
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,6 +57,10 @@ export default function Signup() {
           {loading ? '登録中...' : '登録する'}
         </button>
       </form>
+
+      <div className="mt-3">
+        <XLoginButton />
+      </div>
 
       <div className="mt-3">
         <a className="btn btn-link p-0" href="/login">ログインはこちら</a>

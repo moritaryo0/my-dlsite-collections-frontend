@@ -1,13 +1,29 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { loginJwt, setAuthToken } from '../lib/api'
 import { getErrorMessage } from '../lib/error'
 import AboutSection from '../components/AboutSection'
+import XLoginButton from '../components/XLoginButton'
 
 export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' })
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Handle redirect from social login: ?access=...&refresh=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const access = params.get('access')
+    const refresh = params.get('refresh')
+    if (access && refresh) {
+      localStorage.setItem('access_token', access)
+      localStorage.setItem('refresh_token', refresh)
+      setAuthToken(access)
+      // clear query and go home
+      window.history.replaceState({}, '', '/login')
+      window.location.replace('/')
+    }
+  }, [])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,6 +74,10 @@ export default function Login() {
           <i className="bi bi-box-arrow-in-right" /> {loading ? 'ログイン中...' : 'ログイン'}
         </button>
       </form>
+
+      <div className="mt-3">
+        <XLoginButton />
+      </div>
 
       <div className="mt-3">
         <a className="btn btn-link p-0" href="/signup">新規登録はこちら</a>

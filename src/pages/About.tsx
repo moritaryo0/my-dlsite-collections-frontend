@@ -10,6 +10,11 @@ export default function About() {
           あなたは本当に18歳以上ですか？
         </a>
       </div>
+      <div className="mt-3">
+        <a className="btn btn-outline-secondary" href="/update_info">
+          アップデート情報
+        </a>
+      </div>
     </div>
   )
 }

@@ -189,6 +189,12 @@ export type Me = {
   id: number;
   username: string;
   email?: string;
+  private?: boolean;
+}
+
+export type PublicUser = {
+  username: string;
+  posts: Array<{ id: number; content_url: string; description: string | null; created_at: string; title?: string; image?: string }>
 }
 
 // Public endpoints
@@ -221,3 +227,10 @@ export const registerAccount = async (payload: { username: string; email?: strin
 // Accounts - rename username (auth required)
 export const renameUsername = (payload: { username: string }) =>
   backendApi.post<Me>(`/accounts/rename/`, payload)
+
+// Accounts - privacy
+export const getPrivacy = () => backendApi.get<{ private: boolean }>(`/accounts/privacy/`)
+export const setPrivacy = (value: boolean) => backendApi.post<{ private: boolean }>(`/accounts/privacy/`, { private: value })
+
+// Public users list
+export const fetchPublicUsers = () => api.get<PublicUser[]>(`/public_users/`)

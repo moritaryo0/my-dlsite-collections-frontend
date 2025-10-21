@@ -10,7 +10,7 @@ export default function ContentRanking() {
   const [contents, setContents] = useState<ContentData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [displayCount, setDisplayCount] = useState(0)
+  const [displayCount, setDisplayCount] = useState(5)
   const [hasMore, setHasMore] = useState(true)
   const [supportsServerPagination, setSupportsServerPagination] = useState<boolean | null>(null)
   const PAGE_SIZE = 10
@@ -28,14 +28,8 @@ export default function ContentRanking() {
         const isServerPaginated = initial.length <= PAGE_SIZE
         setSupportsServerPagination(isServerPaginated)
         setContents(initial)
-        if (isServerPaginated) {
-          setDisplayCount(initial.length)
-          setHasMore(initial.length === PAGE_SIZE)
-        } else {
-          // 全件返却パターン: 初期表示は10件、以降はフロントで+10ずつ
-          setDisplayCount(Math.min(PAGE_SIZE, initial.length))
-          setHasMore(initial.length > PAGE_SIZE)
-        }
+        // 初期表示は常に5件に固定
+        setHasMore(initial.length > 5)
       } catch (e: any) {
         setError(getErrorMessage(e, '読み込みに失敗しました'))
       } finally {
