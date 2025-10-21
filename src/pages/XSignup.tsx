@@ -4,7 +4,7 @@ import { getErrorMessage } from '../lib/error'
 
 export default function XSignup() {
   const [username, setUsername] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
