@@ -1,5 +1,3 @@
-import React from 'react'
-
 export default function XLoginButton({ className }: { className?: string }) {
   const backendBase = (import.meta as any).env?.VITE_BACKEND_BASE_URL ?? 'http://localhost:8000'
   const href = `${backendBase}/social/twitter_oauth2/login/`
