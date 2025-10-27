@@ -172,6 +172,7 @@ export type UserPost = {
   content_url: string;
   created_at: string;
   good_count: number;
+  list_id?: number;
 };
 
 export type ContentData = {
@@ -194,14 +195,15 @@ export type Me = {
 
 export type PublicUser = {
   username: string;
-  posts: Array<{ id: number; content_url: string; description: string | null; created_at: string; title?: string; image?: string }>
+  posts: Array<{ id: number; content_url: string; description: string | null; created_at: string; title?: string; image?: string; content_type?: string }>
 }
 
 // Public endpoints
-export const fetchPosts = (params?: Record<string, string>) => api.get<UserPost[]>('/posts/', { params });
-export const createPost = (payload: { description: string; content_url: string; content_type: string }) =>
+export const fetchPosts = (params?: Record<string, string | number>) => api.get<UserPost[]>('/posts/', { params });
+export const createPost = (payload: { description: string; content_url: string; content_type: string; list_id?: number | null }) =>
   api.post('/posts/', payload);
 export const deletePost = (id: number) => api.delete(`/posts/${id}/`)
+export const movePostList = (id: number, list_id: number) => api.post(`/posts/${id}/move_list/`, { list_id })
 
 export const fetchContents = (params?: { limit?: number; offset?: number }) => api.get<ContentData[]>('/contents/', { params });
 export const createContent = (payload: { content_url: string; content_type?: string }) => api.post('/contents/', payload);
@@ -234,3 +236,30 @@ export const setPrivacy = (value: boolean) => backendApi.post<{ private: boolean
 
 // Public users list
 export const fetchPublicUsers = () => api.get<PublicUser[]>(`/public_users/`)
+
+// User Lists (requires auth; operates on current user)
+export type UserList = {
+  id: number;
+  owner_id: number;
+  owner_username?: string;
+  name: string;
+  description?: string | null;
+  is_public: boolean;
+  goot_count: number;
+  created_at: string;
+  updated_at: string;
+  is_goot?: boolean;
+}
+
+export const fetchMyLists = () => backendApi.get<UserList[]>(`/userlists/api/lists/`)
+export const createList = (payload: { name: string; description?: string; is_public?: boolean }) =>
+  backendApi.post<UserList>(`/userlists/api/lists/`, payload)
+export const gootList = (id: number) => backendApi.post<{ is_goot: boolean; goot_count: number }>(`/userlists/api/lists/${id}/goot/`)
+export const fetchFavoriteLists = () => backendApi.get<UserList[]>(`/userlists/api/lists/favorites/`)
+export const fetchListsByUser = (username: string) => backendApi.get<UserList[]>(`/userlists/api/lists/by_user/`, { params: { username } })
+export const fetchListPublic = (id: number) => backendApi.get<UserList>(`/userlists/api/lists/${id}/retrieve_public/`)
+export const renameList = (id: number, name: string) => backendApi.post<UserList>(`/userlists/api/lists/${id}/rename/`, { name })
+export const toggleListPublic = (id: number, is_public: boolean) => backendApi.post<{ id: number; is_public: boolean }>(`/userlists/api/lists/${id}/toggle_public/`, { is_public })
+export const deleteList = (id: number) => backendApi.delete(`/userlists/api/lists/${id}/`)
+export const updateList = (id: number, payload: { name?: string; description?: string; is_public?: boolean }) =>
+  backendApi.patch<UserList>(`/userlists/api/lists/${id}/`, payload)

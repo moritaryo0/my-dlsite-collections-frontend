@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
-import { deletePost } from '../lib/api'
+import { deletePost, fetchMyLists, movePostList, type UserList } from '../lib/api'
 
 type Props = {
   username?: string
@@ -13,12 +14,16 @@ type Props = {
   goodCount?: number
   postId?: number
   onDeleted?: (id: number) => void
+  onUpdated?: () => void
 }
 
-export default function ContentCard({ username, createdAt, contentUrl, image, title, description, contentType, goodCount, postId, onDeleted }: Props) {
+export default function ContentCard({ username, createdAt, contentUrl, image, title, description, contentType, goodCount, postId, onDeleted, onUpdated }: Props) {
   const [showDetail, setShowDetail] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showMove, setShowMove] = useState(false)
+  const [lists, setLists] = useState<UserList[]>([])
+  const [targetListId, setTargetListId] = useState<number | ''>('')
   const { me } = useAuth()
   const createdText = createdAt ? new Date(createdAt).toLocaleString() : ''
 
@@ -36,6 +41,7 @@ export default function ContentCard({ username, createdAt, contentUrl, image, ti
   }
 
   const canDelete = !!postId && !!me && username && me.username === username
+  const canEdit = canDelete
 
   const menuRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -109,6 +115,17 @@ export default function ContentCard({ username, createdAt, contentUrl, image, ti
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {canEdit && (
+                    <button
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 8 }}
+                      onClick={async () => {
+                        try { const res = await fetchMyLists(); setLists((res as any).data || []); } catch {}
+                        setTargetListId('')
+                        setShowMove(true)
+                        setShowMenu(false)
+                      }}
+                    >リストを変更</button>
+                  )}
                   <button
                     style={{
                       display: 'block', width: '100%', textAlign: 'left',
@@ -133,7 +150,7 @@ export default function ContentCard({ username, createdAt, contentUrl, image, ti
         </div>
       )}
 
-      <div style={{ padding: 10, display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           {contentType && (
             <span className="badge" style={getContentTypeBadgeStyle(contentType)}>{contentType}</span>
@@ -143,7 +160,7 @@ export default function ContentCard({ username, createdAt, contentUrl, image, ti
           )}
         </div>
 
-        <div style={{ minHeight: 56, marginTop: 6 }}>
+        <div style={{ minHeight: 52, marginTop: 4 }}>
           {description ? (
             <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: 14, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as any }}>{description}</p>
           ) : (
@@ -155,31 +172,44 @@ export default function ContentCard({ username, createdAt, contentUrl, image, ti
         </div>
       </div>
 
-      {showDetail && (
-        <div className="modal fade show content-modal-backdrop" style={{ display: 'block', background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowDetail(false)}>
-          <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content content-modal-anim">
-              <div className="modal-header">
-                <h5 className="modal-title">全文表示</h5>
-                <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowDetail(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="content-modal-grid">
-                  <div className="content-modal-left">
-                    {image && (
-                      <a href={contentUrl} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
-                        <img src={image} alt={title || 'preview'} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                      </a>
-                    )}
-                    <a className="btn btn-outline-secondary mt-2" href={contentUrl} target="_blank" rel="noreferrer">作品リンクを開く</a>
-                  </div>
-                  <div className="content-modal-right" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                    {description || ''}
+      {showDetail && createPortal((
+        <>
+          <div
+            className="modal fade show content-modal-backdrop"
+            style={{
+              position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,0,0,0.5)', zIndex: 1050
+            }}
+            onClick={() => setShowDetail(false)}
+          >
+            <div
+              className="modal-dialog modal-dialog-centered modal-lg"
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 960, margin: 0, padding: '0 12px' }}
+            >
+              <div className="modal-content content-modal-anim">
+                <div className="modal-header">
+                  <h5 className="modal-title">全文表示</h5>
+                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowDetail(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="content-modal-grid">
+                    <div className="content-modal-left">
+                      {image && (
+                        <a href={contentUrl} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+                          <img src={image} alt={title || 'preview'} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                        </a>
+                      )}
+                      <a className="btn btn-outline-secondary mt-2" href={contentUrl} target="_blank" rel="noreferrer">作品リンクを開く</a>
+                    </div>
+                    <div className="content-modal-right" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                      {description || ''}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-primary" onClick={() => setShowDetail(false)}>閉じる</button>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary" onClick={() => setShowDetail(false)}>閉じる</button>
+                </div>
               </div>
             </div>
           </div>
@@ -201,8 +231,52 @@ export default function ContentCard({ username, createdAt, contentUrl, image, ti
               .content-modal-anim, .content-modal-backdrop { animation: none !important; }
             }
           `}</style>
+        </>
+      ), document.body)}
+
+      {showMove && createPortal((
+        <div
+          className="modal fade show"
+          style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 1050 }}
+          onClick={() => setShowMove(false)}
+        >
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">リストを変更</h5>
+                <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowMove(false)}></button>
+              </div>
+              <div className="modal-body" style={{ display: 'grid', gap: 8 }}>
+                <label className="form-label">変更先のリスト</label>
+                <select className="form-select" value={targetListId} onChange={e => setTargetListId(e.target.value === '' ? '' : Number(e.target.value))}>
+                  <option value="">選択してください</option>
+                  {lists.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowMove(false)}>キャンセル</button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!postId || targetListId === ''}
+                  onClick={async () => {
+                    if (!postId || targetListId === '') return
+                    try {
+                      await movePostList(postId, Number(targetListId))
+                      setShowMove(false)
+                      if (onUpdated) onUpdated()
+                    } catch (err: any) {
+                      alert(err?.response?.data?.error || 'リスト変更に失敗しました')
+                    }
+                  }}
+                >変更</button>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      ), document.body)}
     </article>
   )
 }

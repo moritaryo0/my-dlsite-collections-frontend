@@ -12,7 +12,8 @@ import MobileHeader from './components/MobileHeader'
 import { AuthProvider } from './context/AuthContext'
 import Profile from './pages/Profile.tsx'
 import UserProfile from './pages/UserProfile'
-import UserWorks from './pages/UserWorks'
+// import UserWorks from './pages/UserWorks'
+import UserListWorks from './pages/UserListWorks'
 import About from './pages/About'
 import RequireAuth from './components/RequireAuth'
 import AgeQuiz from './pages/AgeQuiz'
@@ -48,8 +49,9 @@ export default function App() {
                   <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                   <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
                   <Route path="/users/:username" element={<RequireAuth><UserProfile /></RequireAuth>} />
-                  {/* 例外: 未ログインでも閲覧可 */}
-                  <Route path="/users/:username/works" element={<UserWorks />} />
+                  {/* worksはhomeリストへ統合。リダイレクト相当: lists/Home（見つからなければユーザープロフィールへ） */}
+                  <Route path="/users/:username/works" element={<UserListWorks />} />
+                  <Route path="/users/:username/lists/:listId" element={<UserListWorks />} />
                   {/* 公開ページ */}
                   <Route path="/age-quiz" element={<AgeQuiz />} />
                   <Route path="/about" element={<About />} />

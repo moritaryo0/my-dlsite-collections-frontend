@@ -25,8 +25,17 @@ function PublicUserCard({ user }: { user: PublicUser }) {
           <a href={`/users/${encodeURIComponent(user.username)}`} style={{ textDecoration: 'none' }}>@{user.username}</a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 8 }}>
-          {posts.map((p) => (
-            <a key={p.id} href={p.content_url} target="_blank" rel="noreferrer" className="card" style={{ textDecoration: 'none' }}>
+          {posts.map((p) => {
+            const getBorderColor = (t?: string) => {
+              // より鮮やかな配色に調整（Search専用）
+              if (t === 'ボイス・ASMR') return '#fbbf24' // amber-400（やや薄め）
+              if (t === '漫画・CG作品') return '#22c55e' // green-500
+              if (t === 'ゲーム') return '#8b5cf6' // violet-500
+              return '#6b7280' // gray-500
+            }
+            const borderColor = getBorderColor(p.content_type)
+            return (
+            <a key={p.id} href={p.content_url} target="_blank" rel="noreferrer" className="card" style={{ textDecoration: 'none', borderBottom: `4px solid ${borderColor}` }}>
               {p.image ? (
                 <img
                   src={p.image}
@@ -43,7 +52,7 @@ function PublicUserCard({ user }: { user: PublicUser }) {
                 </div>
               </div>
             </a>
-          ))}
+          )})}
         </div>
         {user.posts.length > maxCollapsed && (
           <div className="mt-2" style={{ display: 'flex', justifyContent: 'flex-end' }}>
