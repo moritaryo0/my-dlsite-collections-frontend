@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { fetchPosts, createPost, fetchContents, fetchMyLists, createList, fetchFavoriteLists, updateList, renameList, toggleListPublic, deleteList, renameGuestUsername, fetchGuestInfo, type UserList, type Me } from '../lib/api'
+import { fetchPosts, createPost, fetchContents, fetchMyLists, createList, fetchFavoriteLists, updateList, renameList, toggleListPublic, deleteList, renameGuestUsername, fetchGuestInfo, type UserList } from '../lib/api'
 import { getErrorMessage } from '../lib/error'
 import type { UserPost, ContentData } from '../lib/api'
 import ContentCard from '../components/ContentCard'
@@ -10,7 +10,7 @@ type HomeProps = { bannerMessage?: string }
 
 export default function Home(props: HomeProps) {
   const location = useLocation()
-  const { me, loading: authLoading, reloadMe } = useAuth()
+  const { me } = useAuth()
   const [allPosts, setAllPosts] = useState<UserPost[]>([])
   const [myPosts, setMyPosts] = useState<UserPost[]>([])
   const [contents, setContents] = useState<ContentData[]>([])
