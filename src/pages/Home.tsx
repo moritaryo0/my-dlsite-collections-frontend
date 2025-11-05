@@ -760,6 +760,7 @@ export default function Home(props: HomeProps) {
                 <button className="btn btn-secondary" type="button" onClick={shareToDiscord}>
                   <i className="bi bi-discord" /> Discordで共有
                 </button>
+<<<<<<< HEAD
                 <button 
                   className="btn btn-outline-primary" 
                   type="button"
@@ -778,6 +779,21 @@ export default function Home(props: HomeProps) {
                 <small style={{ color: 'var(--bs-secondary-color)', fontSize: '0.875rem', marginTop: '-4px' }}>
                   リンクをコピーした状態で移動します
                 </small>
+=======
+                <button
+                  className="btn btn-outline-primary"
+                  type="button"
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(shareUrl) } catch {}
+                    window.open('https://ch.dlsite.com/pommu/posts/create', '_blank')
+                  }}
+                >
+                  ぽむむに投稿を作成（DLsiteコミュニティ）
+                </button>
+                <div style={{ color: 'var(--bs-secondary-color)', fontSize: 12 }}>
+                  リンクをコピーした状態で飛ぶのでそのまま貼り付けられます。
+                </div>
+>>>>>>> 2afd825 (バグりまくったの戻します)
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowShare(false)}>閉じる</button>
