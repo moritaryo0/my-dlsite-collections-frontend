@@ -18,17 +18,25 @@ export default function Profile() {
 
   useEffect(() => {
     (async () => {
-      if (!me) return
+      // ゲストユーザーでもアクセスできるようにする（meがない場合でも）
       try {
         setError(null)
-        const [p, c, l] = await Promise.all([
-          fetchPosts({ username: me.username }),
+        const [c] = await Promise.all([
           fetchContents(),
-          fetchMyLists(),
         ])
-        setPosts(p.data)
         setContents(c.data)
-        setMyLists(l.data || [])
+        if (me) {
+          const [p, l] = await Promise.all([
+            fetchPosts({ username: me.username }),
+            fetchMyLists(),
+          ])
+          setPosts(p.data)
+          setMyLists(l.data || [])
+        } else {
+          // ゲストユーザーの場合は空のリストを設定
+          setPosts([])
+          setMyLists([])
+        }
       } catch (e: any) {
         setError(getErrorMessage(e, '読み込みに失敗しました'))
       }
@@ -137,61 +145,82 @@ export default function Profile() {
   })()
 
   if (loading) return <div style={{ width: '100%', padding: '20px 16px', maxWidth: 720, margin: '0 auto' }}>読み込み中...</div>
-  if (!me) return <div style={{ width: '100%', padding: '20px 16px', maxWidth: 720, margin: '0 auto' }}>未ログインです。</div>
 
   return (
     <div style={{ width: '100%', padding: '20px 16px', maxWidth: 720, margin: '0 auto' }}>
       <h2 className="mb-3">プロフィール</h2>
-      <div className="card shadow-sm mb-3" style={{ borderRadius: 12 }}>
-        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 18 }}>{me.username}</div>
-            {me.email && <div style={{ color: 'var(--bs-secondary-color)' }}>{me.email}</div>}
+      {me ? (
+        <div className="card shadow-sm mb-3" style={{ borderRadius: 12 }}>
+          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 18 }}>{me.username}</div>
+              {me.email && <div style={{ color: 'var(--bs-secondary-color)' }}>{me.email}</div>}
+            </div>
           </div>
         </div>
-      </div>
-
-      <ul className="nav nav-tabs mb-3">
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>投稿</button>
-        </li>
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'lists' ? 'active' : ''}`} onClick={() => setActiveTab('lists')}>リスト</button>
-        </li>
-      </ul>
-
-      {activeTab === 'posts' ? (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h5 className="card-title" style={{ margin: 0 }}>あなたの登録した作品</h5>
-            <button className="btn btn-outline-secondary btn-sm" onClick={openShare}>
-              <i className="bi bi-share" /> リストを共有
-            </button>
+      ) : (
+        <div className="card shadow-sm mb-3" style={{ borderRadius: 12 }}>
+          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 18 }}>ゲストユーザー</div>
+              <div style={{ color: 'var(--bs-secondary-color)' }}>ログインしていません</div>
+            </div>
           </div>
-          {error && (
-            <div className="alert alert-danger" role="alert">{error}</div>
+        </div>
+      )}
+
+      {me && (
+        <ul className="nav nav-tabs mb-3">
+          <li className="nav-item">
+            <button className={`nav-link ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>投稿</button>
+          </li>
+          <li className="nav-item">
+            <button className={`nav-link ${activeTab === 'lists' ? 'active' : ''}`} onClick={() => setActiveTab('lists')}>リスト</button>
+          </li>
+        </ul>
+      )}
+
+      {me ? (
+        <>
+          {activeTab === 'posts' ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h5 className="card-title" style={{ margin: 0 }}>あなたの登録した作品</h5>
+                <button className="btn btn-outline-secondary btn-sm" onClick={openShare}>
+                  <i className="bi bi-share" /> リストを共有
+                </button>
+              </div>
+              {error && (
+                <div className="alert alert-danger" role="alert">{error}</div>
+              )}
+              {renderGroupedByList(posts)}
+            </>
+          ) : (
+            <div className="card shadow-sm" style={{ borderRadius: 12 }}>
+              <div className="card-body">
+                <h5 className="card-title" style={{ margin: 0, marginBottom: 8 }}>あなたのリスト</h5>
+                <ul className="list-group">
+                  {myLists.length === 0 && (
+                    <li className="list-group-item" style={{ color: 'var(--bs-secondary-color)' }}>まだリストがありません</li>
+                  )}
+                  {myLists.map(l => (
+                    <li key={l.id} className="list-group-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <a href={`/users/${encodeURIComponent(me.username)}/lists/${l.id}`} style={{ fontWeight: 600 }}>{l.name}</a>
+                        {l.description && <div style={{ color: 'var(--bs-secondary-color)', fontSize: 12 }}>{l.description}</div>}
+                      </div>
+                      <span className="badge bg-secondary">{l.goot_count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           )}
-          {renderGroupedByList(posts)}
         </>
       ) : (
-        <div className="card shadow-sm" style={{ borderRadius: 12 }}>
-          <div className="card-body">
-            <h5 className="card-title" style={{ margin: 0, marginBottom: 8 }}>あなたのリスト</h5>
-            <ul className="list-group">
-              {myLists.length === 0 && (
-                <li className="list-group-item" style={{ color: 'var(--bs-secondary-color)' }}>まだリストがありません</li>
-              )}
-              {myLists.map(l => (
-                <li key={l.id} className="list-group-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <a href={`/users/${encodeURIComponent(me!.username)}/lists/${l.id}`} style={{ fontWeight: 600 }}>{l.name}</a>
-                    {l.description && <div style={{ color: 'var(--bs-secondary-color)', fontSize: 12 }}>{l.description}</div>}
-                  </div>
-                  <span className="badge bg-secondary">{l.goot_count}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="alert alert-info" role="alert">
+          ログインすると、あなたの投稿やリストを確認できます。<br />
+          <a href="/login" className="btn btn-primary btn-sm mt-2">ログイン</a> または <a href="/signup" className="btn btn-outline-primary btn-sm mt-2">新規登録</a>
         </div>
       )}
 
@@ -215,6 +244,24 @@ export default function Profile() {
                 <button className="btn btn-secondary" type="button" onClick={shareToDiscord}>
                   <i className="bi bi-discord" /> Discordで共有
                 </button>
+                <button 
+                  className="btn btn-outline-primary" 
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareUrl)
+                      window.open(`https://ch.dlsite.com/pommu/posts/create?url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+                    } catch (e) {
+                      // クリップボードにコピーできない場合はURLだけ開く
+                      window.open(`https://ch.dlsite.com/pommu/posts/create?url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+                    }
+                  }}
+                >
+                  <i className="bi bi-link-45deg" /> Pommuで共有
+                </button>
+                <small style={{ color: 'var(--bs-secondary-color)', fontSize: '0.875rem', marginTop: '-4px' }}>
+                  リンクをコピーした状態で移動します
+                </small>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowShare(false)}>閉じる</button>

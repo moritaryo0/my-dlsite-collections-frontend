@@ -19,12 +19,13 @@ export default function Settings() {
   // load privacy on mount
   useEffect(() => {
     (async () => {
+      if (!me) return
       try {
         const res = await getPrivacy()
         setIsPrivate(!!res.data.private)
       } catch {}
     })()
-  }, [])
+  }, [me])
 
   const onSubmitRename = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,67 +60,77 @@ export default function Settings() {
           </button>
           {openAccount && (
             <div className="card-body">
-              <button
-                onClick={async () => { await logout(); navigate('/login', { replace: true }) }}
-                disabled={loading}
-                style={{ marginTop: 4, padding: '8px 12px', background: '#ef4444', color: 'white', borderRadius: 6, border: 'none', cursor: 'pointer' }}
-              >ログアウト</button>
-            </div>
-          )}
-        </div>
-
-        <div className="card mb-2">
-          <button type="button" className="btn btn-dark text-start w-100" onClick={() => setOpenRename(v => !v)}>
-            名前変更
-          </button>
-          {openRename && (
-            <div className="card-body">
-              <form onSubmit={onSubmitRename} style={{ maxWidth: 460 }}>
-                <div className="mb-3">
-                  <label className="form-label">新しいユーザー名</label>
-                  <input
-                    className="form-control"
-                    placeholder="例: aozora_reader"
-                    value={newName}
-                    onChange={e => setNewName(e.target.value)}
-                    maxLength={255}
-                    required
-                  />
-                  <div className="form-text">半角英数・記号を含め最大255文字。</div>
+              {me ? (
+                <button
+                  onClick={async () => { await logout(); navigate('/login', { replace: true }) }}
+                  disabled={loading}
+                  style={{ marginTop: 4, padding: '8px 12px', background: '#ef4444', color: 'white', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+                >ログアウト</button>
+              ) : (
+                <div style={{ marginTop: 4, padding: '8px 12px', color: 'var(--bs-secondary-color)' }}>
+                  ログインしていません。<a href="/login">ログイン</a>または<a href="/signup">新規登録</a>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? '変更中...' : '変更する'}
-                </button>
-              </form>
+              )}
             </div>
           )}
         </div>
 
-        <div className="card mb-2">
-          <button type="button" className="btn btn-dark text-start w-100" onClick={() => setOpenPrivacy(v => !v)}>
-            プライバシー
-          </button>
-          {openPrivacy && (
-            <div className="card-body">
-              <div className="form-check form-switch">
-                <input className="form-check-input" type="checkbox" role="switch" id="privateSwitch"
-                  checked={isPrivate}
-                  onChange={async (e) => {
-                    const v = e.target.checked
-                    try {
-                      setError(null)
-                      const res = await setPrivacy(v)
-                      setIsPrivate(res.data.private)
-                      setMessage(res.data.private ? 'アカウントを非公開にしました' : 'アカウントを公開にしました')
-                    } catch (err: any) {
-                      setError(getErrorMessage(err, '更新に失敗しました'))
-                    }
-                  }} />
-                <label className="form-check-label" htmlFor="privateSwitch">非公開（探すページの投稿一覧に表示されなくなります）</label>
-              </div>
+        {me && (
+          <>
+            <div className="card mb-2">
+              <button type="button" className="btn btn-dark text-start w-100" onClick={() => setOpenRename(v => !v)}>
+                名前変更
+              </button>
+              {openRename && (
+                <div className="card-body">
+                  <form onSubmit={onSubmitRename} style={{ maxWidth: 460 }}>
+                    <div className="mb-3">
+                      <label className="form-label">新しいユーザー名</label>
+                      <input
+                        className="form-control"
+                        placeholder="例: aozora_reader"
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        maxLength={255}
+                        required
+                      />
+                      <div className="form-text">半角英数・記号を含め最大255文字。</div>
+                    </div>
+                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                      {submitting ? '変更中...' : '変更する'}
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div className="card mb-2">
+              <button type="button" className="btn btn-dark text-start w-100" onClick={() => setOpenPrivacy(v => !v)}>
+                プライバシー
+              </button>
+              {openPrivacy && (
+                <div className="card-body">
+                  <div className="form-check form-switch">
+                    <input className="form-check-input" type="checkbox" role="switch" id="privateSwitch"
+                      checked={isPrivate}
+                      onChange={async (e) => {
+                        const v = e.target.checked
+                        try {
+                          setError(null)
+                          const res = await setPrivacy(v)
+                          setIsPrivate(res.data.private)
+                          setMessage(res.data.private ? 'アカウントを非公開にしました' : 'アカウントを公開にしました')
+                        } catch (err: any) {
+                          setError(getErrorMessage(err, '更新に失敗しました'))
+                        }
+                      }} />
+                    <label className="form-check-label" htmlFor="privateSwitch">非公開（探すページの投稿一覧に表示されなくなります）</label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       

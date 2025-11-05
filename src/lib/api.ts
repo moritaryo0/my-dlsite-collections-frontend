@@ -4,6 +4,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/userpost/api',
   timeout: 10000,
+  withCredentials: true, // クッキーを送信（ゲストID用）
 });
 
 // Attach token on each userpost api request as well (if any)
@@ -21,6 +22,7 @@ const BACKEND_BASE: string = (import.meta as any).env?.VITE_BACKEND_BASE_URL ?? 
 export const backendApi = axios.create({
   baseURL: BACKEND_BASE,
   timeout: 10000,
+  withCredentials: true, // クッキーを送信（ゲストID用）
 });
 
 // Token helpers
@@ -229,6 +231,13 @@ export const registerAccount = async (payload: { username: string; email?: strin
 // Accounts - rename username (auth required)
 export const renameUsername = (payload: { username: string }) =>
   backendApi.post<Me>(`/accounts/rename/`, payload)
+
+// Accounts - rename username for guest (public)
+export const renameGuestUsername = (payload: { username: string }) =>
+  backendApi.post<Me>(`/accounts/guest/rename/`, payload)
+
+// Accounts - guest info (public)
+export const fetchGuestInfo = () => backendApi.get<{ guest_id: string | null }>(`/accounts/guest/info/`)
 
 // Accounts - privacy
 export const getPrivacy = () => backendApi.get<{ private: boolean }>(`/accounts/privacy/`)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { fetchPosts, createPost, fetchContents, fetchMyLists, createList, fetchFavoriteLists, updateList, renameList, toggleListPublic, deleteList, type UserList } from '../lib/api'
+import { fetchPosts, createPost, fetchContents, fetchMyLists, createList, fetchFavoriteLists, updateList, renameList, toggleListPublic, deleteList, renameGuestUsername, fetchGuestInfo, type UserList, type Me } from '../lib/api'
 import { getErrorMessage } from '../lib/error'
 import type { UserPost, ContentData } from '../lib/api'
 import ContentCard from '../components/ContentCard'
@@ -10,7 +10,7 @@ type HomeProps = { bannerMessage?: string }
 
 export default function Home(props: HomeProps) {
   const location = useLocation()
-  const { me } = useAuth()
+  const { me, loading: authLoading, reloadMe } = useAuth()
   const [allPosts, setAllPosts] = useState<UserPost[]>([])
   const [myPosts, setMyPosts] = useState<UserPost[]>([])
   const [contents, setContents] = useState<ContentData[]>([])
@@ -31,6 +31,10 @@ export default function Home(props: HomeProps) {
   const [showUpdatePop, setShowUpdatePop] = useState<boolean>(() => {
     try { return localStorage.getItem('update_pop_hidden_2025-10-21') !== '1' } catch { return true }
   })
+  const [guestUsername, setGuestUsername] = useState<string>('')
+  const [showGuestUsernameForm, setShowGuestUsernameForm] = useState(false)
+  const [isSettingGuestUsername, setIsSettingGuestUsername] = useState(false)
+  const [guestId, setGuestId] = useState<string>('')
 
   const [showShare, setShowShare] = useState(false)
   const [shareUrl, setShareUrl] = useState('')
@@ -42,6 +46,15 @@ export default function Home(props: HomeProps) {
   const [deleteState, setDeleteState] = useState<{ open: boolean; id: number | null; name: string; loading: boolean }>({ open: false, id: null, name: '', loading: false })
   const [successPop, setSuccessPop] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState<number>(40)
+  
+  // ゲストユーザー情報を管理（参照の安定化で無限リクエスト防止）
+  const currentUser = useMemo(() => {
+    if (me) return me
+    if (guestUsername) return { username: guestUsername } as any
+    if (guestId) return { username: `u-${guestId}` } as any
+    return null
+  }, [me, guestUsername, guestId])
+
 
   const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search])
   const listIdToList = useMemo(() => {
@@ -52,38 +65,43 @@ export default function Home(props: HomeProps) {
   const homeListId = useMemo(() => (myLists.find(l => l.name === 'Home')?.id), [myLists])
 
   const openShare = () => {
-    if (!me) return
+    if (!currentUser) return
+    const username = me?.username || guestUsername || (guestId ? `u-${guestId}` : '')
+    if (!username) return
     const defaultId = homeListId ?? ''
     setShareListId(defaultId)
     const url = typeof defaultId === 'number'
-      ? `${window.location.origin}/users/${encodeURIComponent(me.username)}/lists/${defaultId}`
-      : `${window.location.origin}/users/${encodeURIComponent(me.username)}/works`
+      ? `${window.location.origin}/users/${encodeURIComponent(username)}/lists/${defaultId}`
+      : `${window.location.origin}/users/${encodeURIComponent(username)}/works`
     setShareUrl(url)
     setShowShare(true)
   }
 
   useEffect(() => {
     if (!showShare) return
-    if (!me) return
+    if (!currentUser) return
+    const username = me?.username || guestUsername || (guestId ? `u-${guestId}` : '')
+    if (!username) return
     if (shareListId === '') {
       if (typeof homeListId === 'number') {
-        setShareUrl(`${window.location.origin}/users/${encodeURIComponent(me.username)}/lists/${homeListId}`)
+        setShareUrl(`${window.location.origin}/users/${encodeURIComponent(username)}/lists/${homeListId}`)
       } else {
-        setShareUrl(`${window.location.origin}/users/${encodeURIComponent(me.username)}/works`)
+        setShareUrl(`${window.location.origin}/users/${encodeURIComponent(username)}/works`)
       }
     } else {
       const list = listIdToList[Number(shareListId)]
-      const owner = (list?.owner_username) || me.username
+      const owner = (list?.owner_username) || username
       setShareUrl(`${window.location.origin}/users/${encodeURIComponent(owner)}/lists/${Number(shareListId)}`)
     }
-  }, [shareListId, listIdToList, me, showShare, homeListId])
+  }, [shareListId, listIdToList, me, guestUsername, showShare, homeListId, currentUser])
 
   async function loadLists(currentMe: { username: string } | null) {
     const reqAll = fetchPosts()
     const reqMy = currentMe ? fetchPosts({ username: currentMe.username }) : Promise.resolve({ data: [] as UserPost[] } as any)
     const reqContents = fetchContents()
-    const reqMyLists = currentMe ? fetchMyLists() : Promise.resolve({ data: [] as UserList[] } as any)
-    const reqFavLists = currentMe ? fetchFavoriteLists() : Promise.resolve({ data: [] as UserList[] } as any)
+    // ゲストユーザーでもリストを取得できるようにする（meがない場合でもguestUsernameがあれば）
+    const reqMyLists = (currentMe || !me) ? fetchMyLists() : Promise.resolve({ data: [] as UserList[] } as any)
+    const reqFavLists = (currentMe || !me) ? fetchFavoriteLists() : Promise.resolve({ data: [] as UserList[] } as any)
     const [pAll, pMy, c, l, fl] = await Promise.all([reqAll, reqMy, reqContents, reqMyLists, reqFavLists])
     setAllPosts(pAll.data)
     setMyPosts((pMy as any).data ?? [])
@@ -107,18 +125,38 @@ export default function Home(props: HomeProps) {
     setSelectedListId('')
   }
 
+  // ゲストユーザーのusernameをlocalStorageから読み込む
+  useEffect(() => {
+    if (!me) {
+      try {
+        const saved = localStorage.getItem('guest_username')
+        if (saved) setGuestUsername(saved)
+      } catch {}
+    }
+  }, [me])
+
+  // サーバからゲストIDを取得（HttpOnlyのためAPI経由）
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchGuestInfo()
+        if ((res.data as any)?.guest_id) setGuestId((res.data as any).guest_id)
+      } catch {}
+    })()
+  }, [])
+
   useEffect(() => {
     (async () => {
       try {
         // default tab from query
         const tab = urlParams.get('tab')
         if (tab === 'profile') setActiveTab('profile')
-        await loadLists(me || null)
+        await loadLists(currentUser || null)
       } catch (err: any) {
         setErrorMessage(getErrorMessage(err, '初期データの取得に失敗しました'))
       }
     })()
-  }, [urlParams, me])
+  }, [urlParams, currentUser])
 
   const doCreatePost = async () => {
     setIsSubmitting(true)
@@ -134,7 +172,8 @@ export default function Home(props: HomeProps) {
       const res = await createPost(payload)
       const created = (res.data && res.data.data) ? res.data.data as UserPost : null
       if (created) setLastCreated(created)
-      await loadLists(me)
+      // ゲストユーザーの場合も投稿一覧を更新
+      await loadLists(currentUser || null)
       setForm({ description: '', content_url: '' })
       setShowConfirm(false)
     } catch (err: any) {
@@ -146,10 +185,16 @@ export default function Home(props: HomeProps) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // ゲストは投稿前に必ずアカウント名の設定（リネームAPI実行）を必須化
+    if (!me && !guestUsername.trim()) {
+      setErrorMessage('ゲストで投稿するには、先にアカウント名を設定してください。')
+      setShowGuestUsernameForm(true)
+      return
+    }
     setShowConfirm(true)
   }
 
-  const isDisabled = !form.content_url || isSubmitting
+  const isDisabled = !form.content_url || isSubmitting || (!me && !guestUsername.trim())
   const urlToContent: Record<string, ContentData> = useMemo(() => contents.reduce((acc, c) => { acc[c.content_url] = c; return acc }, {} as Record<string, ContentData>), [contents])
 
   const renderCardGrid = (posts: UserPost[]) => (
@@ -331,11 +376,12 @@ export default function Home(props: HomeProps) {
   // posts filter: all / mine / others
   const combinedPosts = useMemo(() => [...myPosts, ...favListPosts], [myPosts, favListPosts])
   const filteredCombinedPosts = useMemo(() => {
-    if (!me) return combinedPosts
-    if (userFilter === 'mine') return combinedPosts.filter(p => p.user?.username === me.username)
-    if (userFilter === 'others') return combinedPosts.filter(p => p.user?.username !== me.username)
+    if (!currentUser) return combinedPosts
+    const username = me?.username || guestUsername || (guestId ? `u-${guestId}` : '')
+    if (userFilter === 'mine') return combinedPosts.filter(p => p.user?.username === username)
+    if (userFilter === 'others') return combinedPosts.filter(p => p.user?.username !== username)
     return combinedPosts
-  }, [combinedPosts, userFilter, me])
+  }, [combinedPosts, userFilter, me, guestUsername, currentUser])
   const displayedPosts = useMemo(() => filteredCombinedPosts.slice(0, visibleCount), [filteredCombinedPosts, visibleCount])
 
   const renderMyList = (posts: UserPost[]) => (
@@ -374,8 +420,9 @@ export default function Home(props: HomeProps) {
   )
 
   const twitterHref = (() => {
-    if (!me) return '#'
-    const text = `「${me.username}」の好きな作品を覗きに行きましょう`
+    if (!currentUser) return '#'
+    const username = me?.username || guestUsername || (guestId ? `u-${guestId}` : 'ゲスト')
+    const text = `「${username}」の好きな作品を覗きに行きましょう`
     const u = new URL('https://twitter.com/intent/tweet')
     u.searchParams.set('text', text)
     u.searchParams.set('url', shareUrl)
@@ -425,17 +472,84 @@ export default function Home(props: HomeProps) {
       )}
       <div className="card shadow-sm mb-3" style={{ borderRadius: 12 }}>
         <div className="card-body">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontWeight: 600 }}>{me ? me.username : 'ゲスト'}</div>
-              {me && (
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {me ? me.username : (guestUsername || 'ゲスト')}
+                {!me && !showGuestUsernameForm && guestUsername && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => setShowGuestUsernameForm(true)}
+                    title="アカウント名を設定"
+                  >
+                    <i className="bi bi-pencil" />
+                  </button>
+                )}
+              </div>
+              {(me || guestUsername) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--bs-secondary-color)', fontSize: 12, marginTop: 2 }}>
                   <span>登録 {myPosts.length}</span>
-                  <span><i className="bi bi-heart-fill" /> {myListsGootSum}</span>
+                  {me && <span><i className="bi bi-heart-fill" /> {myListsGootSum}</span>}
                 </div>
               )}
             </div>
+            {!me && (showGuestUsernameForm || (!guestUsername && guestId)) && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="アカウント名"
+                  value={guestUsername}
+                  onChange={(e) => setGuestUsername(e.target.value)}
+                  style={{ width: 150 }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={async () => {
+                    if (!guestUsername.trim()) {
+                      alert('アカウント名を入力してください')
+                      return
+                    }
+                    setIsSettingGuestUsername(true)
+                    try {
+                      await renameGuestUsername({ username: guestUsername.trim() })
+                      localStorage.setItem('guest_username', guestUsername.trim())
+                      setShowGuestUsernameForm(false)
+                      await loadLists({ username: guestUsername.trim() })
+                      setSuccessPop('アカウント名を設定しました')
+                    } catch (err: any) {
+                      setErrorMessage(getErrorMessage(err, 'アカウント名の設定に失敗しました'))
+                    } finally {
+                      setIsSettingGuestUsername(false)
+                    }
+                  }}
+                  disabled={isSettingGuestUsername || !guestUsername.trim()}
+                >
+                  {isSettingGuestUsername ? '設定中...' : '設定'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => {
+                    setShowGuestUsernameForm(false)
+                    setGuestUsername(localStorage.getItem('guest_username') || '')
+                  }}
+                >
+                  キャンセル
+                </button>
+              </div>
+            )}
           </div>
+          {!me && (
+            <div className="alert alert-warning" role="alert" style={{ margin: '8px 0 12px' }}>
+              ログインなしでも使えるようにしましたが、めちゃくちゃバグるので
+              <a href="/login" className="alert-link">ログイン</a>
+              （<a href="/signup" className="alert-link">サインアップ</a>）して使うのを強くお勧めします。どうしてもログインしたくないというのなら名前を入れて投稿してね。一応リスト作れます。<br /><a href="/about" className="alert-link">このサイトについて</a>で確認してね。
+
+            </div>
+          )}
           <form onSubmit={submit} className="" style={{ display: 'grid', gap: 8 }}>
             <div className="d-flex gap-3 align-items-center">
               <div className="form-check">
@@ -452,7 +566,7 @@ export default function Home(props: HomeProps) {
               </div>
             </div>
             <input className="form-control" placeholder="作品リンク (例: http://dlsite.com/~)" value={form.content_url} onChange={e=>setForm({...form, content_url:e.target.value})}/>
-            {me && (
+            {(me || guestUsername || guestId) && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <select className="form-select" value={selectedListId} onChange={e => setSelectedListId(e.target.value === '' ? '' : Number(e.target.value))}>
                   <option value="">Home に投稿</option>
@@ -466,13 +580,15 @@ export default function Home(props: HomeProps) {
             <textarea className="form-control" rows={5} placeholder="本文,感想など(任意)" value={form.description} onChange={e=>setForm({...form, description:e.target.value})} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm"
-                onClick={openShare}
-              >
-                  <i className="bi bi-share" /> リストを共有
-                </button>
+                {currentUser && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={openShare}
+                  >
+                    <i className="bi bi-share" /> リストを共有
+                  </button>
+                )}
               </div>
               <button type="submit" className="btn btn-primary" disabled={isDisabled}>{isSubmitting ? '投稿中...' : '投稿'}</button>
             </div>
@@ -490,7 +606,7 @@ export default function Home(props: HomeProps) {
         </div>
       </div>
 
-      {me ? (
+      {(me || guestUsername || guestId) ? (
         <>
           <ul className="nav nav-tabs mb-3" style={{ display: 'flex', alignItems: 'center' }}>
             <li className="nav-item">
@@ -535,7 +651,7 @@ export default function Home(props: HomeProps) {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {!l.is_public && <i className="bi bi-lock-fill" title="非公開" style={{ color: 'var(--bs-secondary-color)' }} />}
-                        <a href={`/users/${encodeURIComponent(me!.username)}/lists/${l.id}`} style={{ fontWeight: 600 }}>{l.name}</a>
+                        <a href={`/users/${encodeURIComponent((me?.username || guestUsername || (guestId ? `u-${guestId}` : '')) || '')}/lists/${l.id}`} style={{ fontWeight: 600 }}>{l.name}</a>
                       </div>
                       {l.description && <div style={{ color: 'var(--bs-secondary-color)', fontSize: 12 }}>{l.description}</div>}
                     </div>
@@ -644,6 +760,24 @@ export default function Home(props: HomeProps) {
                 <button className="btn btn-secondary" type="button" onClick={shareToDiscord}>
                   <i className="bi bi-discord" /> Discordで共有
                 </button>
+                <button 
+                  className="btn btn-outline-primary" 
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareUrl)
+                      window.open(`https://ch.dlsite.com/pommu/posts/create?url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+                    } catch (e) {
+                      // クリップボードにコピーできない場合はURLだけ開く
+                      window.open(`https://ch.dlsite.com/pommu/posts/create?url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+                    }
+                  }}
+                >
+                  <i className="bi bi-link-45deg" /> Pommuで共有
+                </button>
+                <small style={{ color: 'var(--bs-secondary-color)', fontSize: '0.875rem', marginTop: '-4px' }}>
+                  リンクをコピーした状態で移動します
+                </small>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowShare(false)}>閉じる</button>

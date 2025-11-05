@@ -57,23 +57,28 @@ export default function UserListWorks() {
         setPosts(listPosts)
         setContents(c.data)
         try {
+          // 認証済みユーザーで自分のリストの場合のみ、fetchMyListsを使用
           if (me && me.username === username) {
-            const lists = await fetchMyLists()
-            const found = (lists.data || []).find(l => l.id === Number(listId))
-            if (found) {
-              setListName(found.name)
-              setIsPublic(!!found.is_public)
-              setIsGoot(!!found.is_goot)
-              setGootCount(found.goot_count || 0)
+            try {
+              const lists = await fetchMyLists()
+              const found = (lists.data || []).find(l => l.id === Number(listId))
+              if (found) {
+                setListName(found.name)
+                setIsPublic(!!found.is_public)
+                setIsGoot(!!found.is_goot)
+                setGootCount(found.goot_count || 0)
+                return
+              }
+            } catch {
+              // fetchMyListsが失敗した場合は公開APIを使用
             }
-          } else {
-            // 公開APIからリスト詳細を取得
-            const detail = await fetchListPublic(Number(listId))
-            setListName(detail.data.name)
-            setIsPublic(!!(detail.data as any).is_public)
-            if (typeof (detail.data as any).is_goot === 'boolean') setIsGoot((detail.data as any).is_goot)
-            if (typeof (detail.data as any).goot_count === 'number') setGootCount((detail.data as any).goot_count)
           }
+          // 公開APIからリスト詳細を取得（ゲストユーザーまたは他ユーザーのリスト）
+          const detail = await fetchListPublic(Number(listId))
+          setListName(detail.data.name)
+          setIsPublic(!!(detail.data as any).is_public)
+          if (typeof (detail.data as any).is_goot === 'boolean') setIsGoot((detail.data as any).is_goot)
+          if (typeof (detail.data as any).goot_count === 'number') setGootCount((detail.data as any).goot_count)
         } catch (e: any) {
           // 非公開などで取得失敗（403時はタイトル表示と申請UI表示）
           const status = e?.response?.status
@@ -81,6 +86,9 @@ export default function UserListWorks() {
             setForbidden(true)
             const data = e?.response?.data
             if (data?.name) setListName(data.name)
+            setError(null)
+          } else if (status === 401) {
+            // 認証情報が含まれていません（ゲスト利用時）は黙って非表示
             setError(null)
           } else {
             setError(getErrorMessage(e, 'リスト情報の取得に失敗しました'))
@@ -103,7 +111,13 @@ export default function UserListWorks() {
           })
         } catch {}
       } catch (e: any) {
-        setError(getErrorMessage(e, '読み込みに失敗しました'))
+        const status = (e as any)?.response?.status
+        if (status === 401) {
+          // 認証情報が含まれていません（ゲスト利用時）は黙って非表示
+          setError(null)
+        } else {
+          setError(getErrorMessage(e, '読み込みに失敗しました'))
+        }
       } finally {
         setLoading(false)
       }
@@ -154,7 +168,7 @@ export default function UserListWorks() {
     window.open('https://discord.com/app', '_blank')
   }
   const onToggleGoot = async () => {
-    if (!listId || !me) return
+    if (!listId) return
     try {
       setGootAnimating(true)
       const res = await gootList(Number(listId))
@@ -184,7 +198,7 @@ export default function UserListWorks() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
         <h2 className="mb-0" style={{ margin: 0, flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{username} さんの「{listName}」</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {me && isPublic && (
+          {isPublic && (
             <button
               className={`btn btn-${isGoot ? 'danger' : 'outline-danger'} btn-sm`}
               onClick={onToggleGoot}
@@ -280,6 +294,24 @@ export default function UserListWorks() {
                 <button className="btn btn-secondary" type="button" onClick={shareToDiscord}>
                   <i className="bi bi-discord" /> Discordで共有
                 </button>
+                <button 
+                  className="btn btn-outline-primary" 
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareUrl)
+                      window.open(`https://ch.dlsite.com/pommu/posts/create?url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+                    } catch (e) {
+                      // クリップボードにコピーできない場合はURLだけ開く
+                      window.open(`https://ch.dlsite.com/pommu/posts/create?url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+                    }
+                  }}
+                >
+                  <i className="bi bi-link-45deg" /> Pommuで共有
+                </button>
+                <small style={{ color: 'var(--bs-secondary-color)', fontSize: '0.875rem', marginTop: '-4px' }}>
+                  リンクをコピーした状態で移動します
+                </small>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowShare(false)}>閉じる</button>

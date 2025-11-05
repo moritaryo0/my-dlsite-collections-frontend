@@ -19,9 +19,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     try {
       const res = await fetchMe()
-      setMe(res.data)
-    } catch {
-      setMe(null)
+      // nullの場合はゲストユーザー
+      setMe(res.data || null)
+    } catch (err: any) {
+      // 401エラーでもゲストユーザーとして扱う
+      if (err?.response?.status === 401) {
+        setMe(null)
+      } else {
+        setMe(null)
+      }
     } finally {
       setLoading(false)
     }

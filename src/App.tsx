@@ -44,11 +44,11 @@ export default function App() {
               </div>
               <main style={{ minHeight: '100vh', paddingBottom: 72 }}>
                 <Routes>
-                  <Route path="/" element={<RequireAuth redirectToSignup><Home /></RequireAuth>} />
+                  <Route path="/" element={<Home />} />
                   <Route path="/search" element={<Search />} />
-                  <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
-                  <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
-                  <Route path="/users/:username" element={<RequireAuth><UserProfile /></RequireAuth>} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/users/:username" element={<UserProfile />} />
                   {/* worksはhomeリストへ統合。リダイレクト相当: lists/Home（見つからなければユーザープロフィールへ） */}
                   <Route path="/users/:username/works" element={<UserListWorks />} />
                   <Route path="/users/:username/lists/:listId" element={<UserListWorks />} />
